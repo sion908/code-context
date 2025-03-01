@@ -1,5 +1,5 @@
 {
-  "name": "code-context",
+  "name": "@sion908/code-context",
   "version": "1.0.0",
   "description": "AIに渡すためのコードベース全体像を生成するCLIツール",
   "main": "index.js",

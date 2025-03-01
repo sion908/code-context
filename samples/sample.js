@@ -1,1 +1,1 @@
-console.log("これは認識される");
+console.log('これは認識される');

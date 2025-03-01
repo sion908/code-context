@@ -59,10 +59,10 @@ async function runSimpleTest() {
     const normalizedReference = referenceContent.replace(/解析日時: .+/, '解析日時: TIMESTAMP');
     
     if (normalizedOutput.trim() === normalizedReference.trim()) {
-      console.log(`✅ テスト成功: 出力ファイルが基準ファイルと一致しました`);
+      console.log('✅ テスト成功: 出力ファイルが基準ファイルと一致しました');
       return true;
     } else {
-      console.error(`❌ テスト失敗: 出力ファイルが基準ファイルと一致しません`);
+      console.error('❌ テスト失敗: 出力ファイルが基準ファイルと一致しません');
       console.log('--- 差分 ---');
       console.log('出力ファイル:');
       console.log(normalizedOutput);
