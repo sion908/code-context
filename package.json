@@ -1,0 +1,35 @@
+{
+  "name": "code-context",
+  "version": "1.0.0",
+  "description": "AIに渡すためのコードベース全体像を生成するCLIツール",
+  "main": "index.js",
+  "bin": {
+    "code-context": "./index.js"
+  },
+  "scripts": {
+    "test": "jest",
+    "lint": "eslint .",
+    "prepare": "husky install"
+  },
+  "keywords": [
+    "ai",
+    "code",
+    "context",
+    "documentation",
+    "cli"
+  ],
+  "author": "sion908<info@sion908.tech>",
+  "license": "MIT",
+  "dependencies": {
+    "glob": "^8.1.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.40.0",
+    "husky": "^8.0.3",
+    "jest": "^29.5.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

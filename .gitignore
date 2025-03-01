@@ -1,0 +1,28 @@
+# Dependency directories
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Coverage directory
+coverage/
+
+# dotenv environment variables file
+.env
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build files
+dist/
+build/
+
+# Logs
+logs
+*.log
+
+# test
+samples/sample.md

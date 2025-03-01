@@ -1,0 +1,25 @@
+# テスト関連
+test/
+coverage/
+.nyc_output/
+*.test.js
+jest.config.js
+
+# サンプルファイル（npmパッケージには含めない）
+samples/
+simple-test.js
+
+# 開発用ファイル
+.eslintrc.json
+.prettierrc
+.github/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# その他
+.DS_Store
+*.log
+.git*
+node_modules/
