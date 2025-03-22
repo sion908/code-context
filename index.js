@@ -11,26 +11,79 @@ const treeUtil = {
   /**
    * ファイルパスの配列からツリー文字列を生成する
    * @param {string[]} paths - ファイルパスの配列
+   * @param {boolean} foldersOnly - フォルダのみを表示するかどうか
    * @returns {string} ツリー構造を表す文字列
    */
-  generateTree(paths) {
+  generateTree(paths, foldersOnly = false) {
     const obj = {};
     
     paths.sort().forEach(path => {
       const parts = path.split('/');
       let current = obj;
       
-      parts.forEach((part, i) => {
+      // 各パスの部分ごとに処理
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        // 最後の部分（ファイル名）の場合
         if (i === parts.length - 1) {
-          current[part] = null; // ファイル
+          if (!foldersOnly) {
+            current[part] = null; // ファイル
+          }
         } else {
-          current[part] = current[part] || {}; // ディレクトリ
+          // ディレクトリの場合
+          if (!current[part]) {
+            current[part] = {};
+          }
           current = current[part];
         }
-      });
+      }
     });
     
     // ルートから始まるツリーを生成
+    return this.generateTreeFromObj(obj, '');
+  },
+
+  /**
+   * フォルダのみのツリー構造を生成する
+   * @param {string[]} paths - ファイルパスの配列
+   * @returns {string} フォルダのみのツリー構造を表す文字列
+   */
+  generateFolderTree(paths) {
+    // すべてのディレクトリを抽出
+    const directories = new Set();
+    
+    paths.forEach(filePath => {
+      const parts = filePath.split('/');
+      let currentPath = '';
+      
+      // ファイル名を除く各ディレクトリパーツを処理
+      for (let i = 0; i < parts.length - 1; i++) {
+        if (currentPath) {
+          currentPath += '/' + parts[i];
+        } else {
+          currentPath = parts[i];
+        }
+        directories.add(currentPath);
+      }
+    });
+    
+    // ディレクトリパスをソートされた配列に変換
+    const sortedDirs = Array.from(directories).sort();
+    
+    // ディレクトリのみでツリーを構築
+    const obj = {};
+    sortedDirs.forEach(dirPath => {
+      const parts = dirPath.split('/');
+      let current = obj;
+      
+      parts.forEach(part => {
+        if (!current[part]) {
+          current[part] = {};
+        }
+        current = current[part];
+      });
+    });
+    
     return this.generateTreeFromObj(obj, '');
   },
 
@@ -41,6 +94,10 @@ const treeUtil = {
    * @returns {string} ツリー文字列
    */
   generateTreeFromObj(obj, prefix = '') {
+    if (Object.keys(obj).length === 0) {
+      return '';
+    }
+    
     let result = '';
     const entries = Object.entries(obj);
     
@@ -49,9 +106,10 @@ const treeUtil = {
       const connector = isLast ? '└── ' : '├── ';
       const newPrefix = prefix + (isLast ? '    ' : '│   ');
 
-      result += `${prefix}${connector}${key}${(key.split('.').length==1)?'\\':''}\n`;
+      const isDir = value !== null;
+      result += `${prefix}${connector}${key}${isDir ? '\\' : ''}\n`;
       
-      if (value !== null) {
+      if (isDir) {
         result += this.generateTreeFromObj(value, newPrefix);
       }
     });
@@ -59,6 +117,21 @@ const treeUtil = {
     return result;
   }
 };
+
+// デフォルトの言語設定
+const DEFAULT_EXTENSIONS = ['js', 'py']; // JavaScript と Python をデフォルトで対応
+const DEFAULT_EXCLUDE_DIRS = [
+  'node_modules',
+  'dist',
+  '.git',
+  '__pycache__',
+  'venv',
+  'env',
+  '.env',
+  '.venv',
+  'build',
+  'out'
+]; // Python関連のディレクトリも除外対象に追加
 
 // コマンドライン引数の設定
 const argv = yargs(hideBin(process.argv))
@@ -71,19 +144,19 @@ const argv = yargs(hideBin(process.argv))
   .option('extensions', {
     alias: 'e',
     type: 'array',
-    description: '検索対象の拡張子（例: js jsx ts）',
-    default: ['js']
+    description: '検索対象の拡張子（例: js py jsx ts）',
+    default: DEFAULT_EXTENSIONS
   })
   .option('exclude', {
     alias: 'x',
     type: 'array',
-    description: '除外するディレクトリパス（例: node_modules dist）',
-    default: ['node_modules', 'dist', '.git']
+    description: '除外するディレクトリパス',
+    default: DEFAULT_EXCLUDE_DIRS
   })
   .option('output', {
     alias: 'o',
     type: 'string',
-    description: '出力ファイルパス（指定しない場合は標準出力）'
+    description: '出力ファイルパス（指定しない場合は対象ファイルとツリー表示のみ）'
   })
   .option('format', {
     alias: 'f',
@@ -95,6 +168,12 @@ const argv = yargs(hideBin(process.argv))
   .option('no-content', {
     type: 'boolean',
     description: 'ファイル内容を含めない（構造のみ表示）',
+    default: false
+  })
+  .option('folders-only', {
+    alias: 'l',
+    type: 'boolean',
+    description: 'フォルダ構造のみを表示（ファイルを除外）',
     default: false
   })
   .help()
@@ -166,62 +245,81 @@ async function main() {
     
     const structure = await getDirectoryStructure(targetDir);
     
-    const output = {
-      timestamp: new Date().toISOString(),
-      baseDirectory: structure.baseDir,
-      fileCount: structure.files.length,
-      files: structure.files.map(file => ({
-        path: file.path,
-        content: file.content
-      }))
-    };
-    
-    // 出力形式を選択
-    const format = argv.format || 'markdown';
-    const includeContent = !argv['no-content'];
-    let outputContent = '';
-    
-    if (format === 'json') {
-      outputContent = JSON.stringify(output, null, 2);
-    } else if (format === 'markdown') {
-      // マークダウン形式の出力を生成
-      outputContent = '# プロジェクト構造解析\n';
-      outputContent += '## 基本情報\n';
-      outputContent += `- 解析日時: ${output.timestamp}\n`;
-      outputContent += `- ファイル数: ${output.fileCount}\n\n`;
-      
-      // ツリー表示を常に含める
-      outputContent += '## ディレクトリ構造\n\n';
-      outputContent += treeUtil.generateTree(structure.files.map(file => file.path));
-      outputContent += '\n';
-      
-      // ファイル内容を含める場合
-      if (includeContent) {
-        outputContent += '## ファイル内容\n\n';
-        output.files.forEach(file => {
-          outputContent += `### ${file.path}\n`;
-          outputContent += '```\n';
-          outputContent += file.content;
-          outputContent += '\n```\n\n';
-        });
-      } else {
-        // ファイル一覧のみ
-        outputContent += '## ファイル一覧\n\n';
-        output.files.forEach(file => {
-          outputContent += `- ${file.path}\n`;
-        });
-      }
+    // 対象ファイル表示
+    if (argv.foldersOnly) {
+      console.log('フォルダ構造:');
+      console.log(treeUtil.generateFolderTree(structure.files.map(file => file.path)));
+    } else {
+      console.log('対象ファイル:');
+      console.log(treeUtil.generateTree(structure.files.map(file => file.path)));
     }
     
+    // -oオプションが指定されている場合のみ、完全な出力を生成
     if (argv.output) {
+      const output = {
+        timestamp: new Date().toISOString(),
+        baseDirectory: structure.baseDir,
+        fileCount: structure.files.length,
+        files: structure.files.map(file => ({
+          path: file.path,
+          content: file.content
+        }))
+      };
+      
+      // 出力形式を選択
+      const format = argv.format || 'markdown';
+      const includeContent = !argv['no-content'];
+      let outputContent = '';
+      
+      if (format === 'json') {
+        outputContent = JSON.stringify(output, null, 2);
+      } else if (format === 'markdown') {
+        // マークダウン形式の出力を生成
+        outputContent = '# プロジェクト構造解析\n';
+        outputContent += '## 基本情報\n';
+        outputContent += `- 解析日時: ${output.timestamp}\n`;
+        outputContent += `- ファイル数: ${output.fileCount}\n\n`;
+        
+        // ツリー表示を常に含める
+        outputContent += '## ディレクトリ構造\n\n';
+        if (argv.foldersOnly) {
+          outputContent += treeUtil.generateFolderTree(structure.files.map(file => file.path));
+        } else {
+          outputContent += treeUtil.generateTree(structure.files.map(file => file.path));
+        }
+        outputContent += '\n';
+        
+        // ファイル内容を含める場合
+        if (includeContent) {
+          outputContent += '## ファイル内容\n\n';
+          output.files.forEach(file => {
+            outputContent += `### ${file.path}\n`;
+            outputContent += '```';
+            
+            // ファイル拡張子に基づいて言語ヒントを追加
+            const fileExt = path.extname(file.path).toLowerCase();
+            if (fileExt === '.js') outputContent += 'javascript';
+            else if (fileExt === '.py') outputContent += 'python';
+            else if (fileExt === '.ts') outputContent += 'typescript';
+            else if (fileExt === '.jsx' || fileExt === '.tsx') outputContent += 'jsx';
+            
+            outputContent += '\n';
+            outputContent += file.content;
+            outputContent += '\n```\n\n';
+          });
+        } else {
+          // ファイル一覧のみ
+          outputContent += '## ファイル一覧\n\n';
+          output.files.forEach(file => {
+            outputContent += `- ${file.path}\n`;
+          });
+        }
+      }
+      
       const outputPath = path.resolve(argv.output);
       fs.writeFileSync(outputPath, outputContent);
       console.log(`出力を ${outputPath} に保存しました`);
-    } else {
-      console.log(outputContent);
     }
-    console.log('対象ファイル');
-    console.log(treeUtil.generateTree(structure.files.map(file => file.path)));
   } catch (error) {
     console.error(`エラーが発生しました: ${error.message}`);
     process.exit(1);

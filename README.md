@@ -33,16 +33,20 @@ code-context --dir ./src --output structure.md
 
 # ファイル内容を含めずに構造のみ出力
 code-context --dir ./src --no-content
+
+# フォルダ構造のみを表示 (ファイルを除外)
+code-context --dir ./src --folders-only
 ```
 
 ## オプション
 
 - `--dir, -d` : 検索対象のディレクトリ (デフォルト: カレントディレクトリ)
-- `--extensions, -e` : 検索対象のファイル拡張子 (例: js jsx ts)
-- `--exclude, -x` : 除外するディレクトリ (デフォルト: node_modules, dist, .git)
-- `--output, -o` : 出力ファイルパス (指定しない場合は標準出力)
+- `--extensions, -e` : 検索対象のファイル拡張子 (デフォルト: js, py)
+- `--exclude, -x` : 除外するディレクトリ (デフォルト: node_modules, dist, .git, __pycache__, venv, env, .env, .venv, build, out)
+- `--output, -o` : 出力ファイルパス (指定しない場合は対象ファイルとツリー表示のみ)
 - `--format, -f` : 出力フォーマット - json または markdown (デフォルト: markdown)
 - `--no-content` : ファイル内容を含めず、構造のみを表示
+- `--folders-only, -fo` : フォルダ構造のみを表示 (ファイルを除外)
 
 ## 出力例
 
@@ -51,31 +55,40 @@ code-context --dir ./src --no-content
 ```markdown
 # プロジェクト構造解析
 ## 基本情報
-- 解析日時: 2025-03-01T08:30:45.123Z
-- ファイル数: 3
+- 解析日時: 2025-03-22T08:30:45.123Z
+- ファイル数: 5
 
 ## ディレクトリ構造
 
-├── src\
-│   ├── index.js
-│   └── utils.js
-└── package.json
+├── index.js
+├── samples\
+│   ├── ex\
+│   │   └── ex.js
+│   ├── inside\
+│   │   ├── inside.js
+│   │   └── inside_inside\
+│   │       ├── ex.ts
+│   │       └── inside_inside.js
+│   ├── sample.js
+│   ├── sample.md
+│   └── sample_ex.md
+└── simple-test.js
 
 ## ファイル内容
 
-### src/index.js
+### index.js
 ```javascript
-// ファイル内容がここに表示されます
+// メインスクリプトのコード
 ```
 
-### src/utils.js
+### samples/ex/ex.js
 ```javascript
-// ファイル内容がここに表示されます
+// ex.jsのコード
 ```
 
-### package.json
-```json
-// package.jsonの内容がここに表示されます
+### samples/inside/inside.js
+```javascript
+// inside.jsのコード
 ```
 ```
 
@@ -83,23 +96,34 @@ code-context --dir ./src --no-content
 
 ```json
 {
-  "timestamp": "2025-03-01T08:30:45.123Z",
-  "fileCount": 3,
+  "timestamp": "2025-03-22T08:30:45.123Z",
+  "baseDirectory": "/path/to/project",
+  "fileCount": 5,
   "files": [
     {
-      "path": "src/index.js",
-      "content": "// ファイル内容"
+      "path": "index.js",
+      "content": "// メインスクリプトのコード"
     },
     {
-      "path": "src/utils.js",
-      "content": "// ファイル内容"
+      "path": "samples/ex/ex.js",
+      "content": "// ex.jsのコード"
     },
     {
-      "path": "package.json",
-      "content": "// package.jsonの内容"
+      "path": "samples/inside/inside.js",
+      "content": "// inside.jsのコード"
     }
   ]
 }
+```
+
+### フォルダ構造のみの表示 (--folders-only)
+
+```
+フォルダ構造:
+├── samples\
+│   ├── ex\
+│   ├── inside\
+│   │   └── inside_inside\
 ```
 
 ## AIへの活用例
@@ -112,45 +136,27 @@ code-context --dir ./src --no-content
 [code-contextの出力結果をここに貼り付け]
 ```
 
-## テスト
-
-このプロジェクトには以下のテスト機能が含まれています：
-
-```bash
-# 単一テスト実行 (特定の出力が期待されるファイルと一致するか検証)
-npm test
-
-# Jestを使用した包括的なテスト
-npm run test:full
-
-# 変更を監視してテスト実行
-npm run test:watch
-
-# カバレッジレポート生成
-npm run test:coverage
-```
-
 ## ディレクトリ構造
 
 ```
-code-context/
+.
+├── LICENSE
+├── README.md
 ├── index.js                  # メインスクリプト
+├── package-lock.json
 ├── package.json              # パッケージ設定
-├── simple-test.js            # シンプルテスト
-├── jest.config.js            # Jestの設定
-├── samples/                  # サンプルファイル
-│   ├── ex/
+├── samples                   # サンプルファイル
+│   ├── ex
 │   │   └── ex.js
-│   ├── inside/
+│   ├── inside
 │   │   ├── inside.js
-│   │   └── inside_inside/
+│   │   └── inside_inside
 │   │       ├── ex.ts
 │   │       └── inside_inside.js
 │   ├── sample.js
+│   ├── sample.md
 │   └── sample_ex.md          # 期待されるテスト出力
-└── test/                     # テストディレクトリ
-    ├── index.test.js         # Jestテスト
-    └── helpers.js            # テスト用ヘルパー関数
+└── simple-test.js            # シンプルテスト
 ```
 
 ## ライセンス
